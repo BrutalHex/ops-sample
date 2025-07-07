@@ -85,8 +85,6 @@ spec:
       containers:
         - name: s3www
           image: {{ .Values.s3www.image.repository }}:{{ .Values.s3www.image.tag }}
-          command:
-            - /usr/local/bin/s3www
           args:
             - -endpoint
             - "$(S3_ENDPOINT)"
