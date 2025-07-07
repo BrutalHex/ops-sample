@@ -51,6 +51,7 @@ spec:
             - sh
             - -c
             - |
+              sleep 30
               apk add --no-cache curl bash && \
               ARCH=$(uname -m) && OS=$(uname | tr '[:upper:]' '[:lower:]') && \
               case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; armv7l) ARCH=arm ;; esac && \
