@@ -3,6 +3,20 @@ entries:
   myapp:
   - apiVersion: v2
     appVersion: 0.0.1
+    created: "2025-07-07T15:01:33.022569309Z"
+    dependencies:
+    - name: minio
+      repository: https://charts.min.io/
+      version: 5.4.0
+    description: A Helm chart to serve a simple object storage using Minio.
+    digest: cc01411fa3b4540e1e1da30ac83e6814b41778832c53f0b92e96389d9620a238
+    name: myapp
+    type: application
+    urls:
+    - https://github.com/BrutalHex/ops-sample/releases/download/myapp-1.0.4/myapp-1.0.4.tgz
+    version: 1.0.4
+  - apiVersion: v2
+    appVersion: 0.0.1
     created: "2025-07-07T13:01:49.08631194Z"
     dependencies:
     - name: minio
@@ -29,4 +43,4 @@ entries:
     urls:
     - https://github.com/BrutalHex/ops-sample/releases/download/myapp-1.0.2/myapp-1.0.2.tgz
     version: 1.0.2
-generated: "2025-07-07T13:01:49.084215227Z"
+generated: "2025-07-07T15:01:33.020515088Z"
