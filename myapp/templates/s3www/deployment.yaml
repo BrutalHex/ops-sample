@@ -1,0 +1,131 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-s3www
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: s3www
+{{- with .Values.s3www.deployment.labels }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+  annotations:
+{{- with .Values.s3www.deployment.annotations }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+spec:
+  replicas: {{ .Values.s3www.replicaCount }}
+  selector:
+    matchLabels:
+      app: s3www
+  template:
+    metadata:
+      labels:
+        app: s3www
+{{- with .Values.s3www.podLabels }}
+{{ toYaml . | indent 8 }}
+{{- end }}
+      annotations:
+        checksum/configmap: {{ include (print $.Template.BasePath "/s3www/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/minio/credentials.yaml") . | sha256sum }}
+{{- with .Values.s3www.podAnnotations }}
+{{ toYaml . | indent 8 }}
+{{- end }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-s3www
+{{- with .Values.s3www.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+{{- end }}
+{{- with .Values.s3www.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+{{- end }}
+{{- with .Values.s3www.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+{{- end }}
+      initContainers:
+        - name: setup-minio
+          image: alpine:3.22
+          command:
+            - sh
+            - -c
+            - |
+              apk add --no-cache curl bash && \
+              ARCH=$(uname -m) && OS=$(uname | tr '[:upper:]' '[:lower:]') && \
+              case "$ARCH" in x86_64) ARCH=amd64 ;; aarch64) ARCH=arm64 ;; armv7l) ARCH=arm ;; esac && \
+              curl -sSL -o /usr/bin/mc https://dl.min.io/client/mc/release/${OS}-${ARCH}/mc && \
+              chmod +x /usr/bin/mc && \
+              mc alias set myminio "$S3_ENDPOINT" "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" && \
+              mc mb -p myminio/$S3_BUCKET || true && \
+              curl -o /tmp/giphy.gif https://media.giphy.com/media/VdiQKDAguhDSi37gn1/giphy.gif && \
+              mc cp /tmp/giphy.gif myminio/$S3_BUCKET/ && \
+              mc anonymous set download myminio/$S3_BUCKET
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret | default (print .Release.Name "-minio-credentials") }}
+                  key: rootUser
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret | default (print .Release.Name "-minio-credentials") }}
+                  key: rootPassword
+            - name: S3_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-s3www
+                  key: S3_ENDPOINT
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-s3www
+                  key: S3_BUCKET
+      containers:
+        - name: s3www
+          image: {{ .Values.s3www.image.repository }}:{{ .Values.s3www.image.tag }}
+          command:
+            - /usr/local/bin/s3www
+          args:
+            - -endpoint
+            - "$(S3_ENDPOINT)"
+            - -accessKey
+            - "$(AWS_ACCESS_KEY_ID)"
+            - -secretKey
+            - "$(AWS_SECRET_ACCESS_KEY)"
+            - -bucket
+            - "$(S3_BUCKET)"
+            - -address
+            - "0.0.0.0:{{ .Values.s3www.service.targetPort | default .Values.s3www.service.port }}"
+          env:
+            - name: S3_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-s3www
+                  key: S3_ENDPOINT
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-s3www
+                  key: S3_BUCKET
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret | default (print .Release.Name "-minio-credentials") }}
+                  key: rootUser
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.existingSecret | default (print .Release.Name "-minio-credentials") }}
+                  key: rootPassword
+          ports:
+            - containerPort: {{ .Values.s3www.service.targetPort | default .Values.s3www.service.port }}
+          volumeMounts:
+            - name: s3www-bin
+              mountPath: /usr/local/bin
+          resources:
+{{ toYaml .Values.s3www.resources | indent 12 }}
+      volumes:
+        - name: s3www-bin
+          emptyDir: {}

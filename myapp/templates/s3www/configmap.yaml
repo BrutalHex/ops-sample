@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-s3www
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: s3www
+    app.kubernetes.io/component: config
+    app.kubernetes.io/managed-by: Helm
+data:
+  S3_ENDPOINT: "http://{{ .Values.minio.serviceName | default (print .Release.Name "-minio") }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.minio.service.port | default "9000" }}"
+  S3_BUCKET: "{{ (index .Values.minio.buckets 0).name }}"

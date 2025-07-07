@@ -1,0 +1,18 @@
+apiVersion: networking.istio.io/v1
+kind: ServiceEntry
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{.Values.gateway.namespace}}
+spec:
+  hosts:
+    - {{ .Values.gateway.url }}
+  location: MESH_INTERNAL
+  ports:
+    - number: 80
+      name: http
+      protocol: HTTP
+  resolution: DNS
+  endpoints:
+    - address: {{ .Release.Name }}-s3www.{{ .Release.Namespace }}.svc.cluster.local
+      ports:
+        http: {{ .Values.s3www.service.port }}

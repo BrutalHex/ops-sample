@@ -1,0 +1,16 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+    - kind: Gateway
+      name: {{ .Values.gateway.name }}
+      namespace: {{ .Values.gateway.namespace }}
+  hostnames:
+    - "{{ .Values.gateway.url }}"  # Must be quoted if it's a string/FQDN
+  rules:
+    - backendRefs:
+        - name: {{ .Release.Name }}-s3www
+          port: {{ .Values.s3www.service.port }}

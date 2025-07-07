@@ -1,0 +1,16 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ .Release.Name }}-{{ .Release.Namespace }}-auth-whitelist
+  namespace: {{.Values.gateway.namespace}}
+spec:
+  action: ALLOW
+  targetRefs:
+  - kind: Gateway
+    group: gateway.networking.k8s.io
+    name: {{.Values.gateway.name}}
+  rules:
+   - from:
+        - source:
+             namespaces:
+             - {{ .Release.Namespace }}
